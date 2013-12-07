@@ -30,10 +30,10 @@ begin
   # Contours too small
   next unless box.width > 10
   # Contours with the wrong height-width ratio
-  next unless box.width * 2 < box.height
+  next unless box.width * 3 < box.height
 
   candidates << Rectangle.new(box.top_left.y, box.bottom_right.y, box.top_left.x, box.bottom_right.x)
-  # image.rectangle! box.top_left, box.bottom_right, :color => OpenCV::CvColor::Green
+  image.rectangle! box.top_left, box.bottom_right, :color => OpenCV::CvColor::Blue
 
 end while contour = contour.h_next
 
@@ -64,7 +64,7 @@ expanded_candidates.each do |r|
   groups.each do |g|
     if (g.last.top - r.top).abs < 20 &&
         (g.last.bottom - r.bottom).abs < 20 &&
-        (g.last.right - r.left).abs < 10
+        (g.last.right - r.left).abs < 20
       g << r
       included = true
     end
