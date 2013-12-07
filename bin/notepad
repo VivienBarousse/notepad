@@ -18,13 +18,15 @@ image = capture.query
 next unless image
 black_image = image.BGR2GRAY
 
-canny = black_image.canny(50, 150)
+canny = black_image.canny(10, 200)
 contour = canny.find_contours(:mode => OpenCV::CV_RETR_LIST, :method => OpenCV::CV_CHAIN_APPROX_SIMPLE)
 
 candidates = []
 
 begin
   box = contour.bounding_rect
+
+  image.rectangle! box.top_left, box.bottom_right, :color => OpenCV::CvColor::Blue
 
   # Heuristics to remove bad contour
   # Contours too small
@@ -33,7 +35,6 @@ begin
   next unless box.width * 3 < box.height
 
   candidates << Rectangle.new(box.top_left.y, box.bottom_right.y, box.top_left.x, box.bottom_right.x)
-  image.rectangle! box.top_left, box.bottom_right, :color => OpenCV::CvColor::Blue
 
 end while contour = contour.h_next
 
