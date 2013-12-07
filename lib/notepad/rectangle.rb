@@ -24,6 +24,18 @@ module Notepad
       [top, bottom, left, right].inspect
     end
 
+    def width
+      right - left
+    end
+
+    def height
+      bottom - top
+    end
+
+    def ratio
+      [height.to_f / width.to_f, width.to_f / height.to_f].min
+    end
+
     def ==(other)
       [top, bottom, left, right] == [other.top, other.bottom, other.left, other.right]
     end
