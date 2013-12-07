@@ -80,7 +80,7 @@ keyboard.each do |r|
   image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => OpenCV::CvColor::Red
 end
 
-image.save("./foo.jpeg")
+#image.save("./foo.jpeg")
 window.show image
 break if OpenCV::GUI.wait_key 100
 
