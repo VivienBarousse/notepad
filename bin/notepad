@@ -5,7 +5,12 @@ require File.expand_path('../../lib/notepad', __FILE__)
 
 include Notepad
 
+window = OpenCV::GUI::Window.new("Keyboard!")
+
 capture = OpenCV::CvCapture.open
+
+loop do
+
 
 image = capture.query
 black_image = image.BGR2GRAY
@@ -20,7 +25,7 @@ begin
 
   # Heuristics to remove bad contour
   # Contours too small
-  next unless box.width > 20
+  next unless box.width > 10
   # Contours with the wrong height-width ratio
   next unless box.width * 2 < box.height
 
@@ -56,7 +61,7 @@ expanded_candidates.each do |r|
   groups.each do |g|
     if (g.last.top - r.top).abs < 20 &&
         (g.last.bottom - r.bottom).abs < 20 &&
-        (g.last.right - r.left).abs < 20
+        (g.last.right - r.left).abs < 10
       g << r
       included = true
     end
@@ -66,7 +71,7 @@ expanded_candidates.each do |r|
   end
 end
 
-keyboard = groups.first
+keyboard = groups.first || []
 groups.each do |g|
   keyboard = g.length > keyboard.length ? g : keyboard
 end
@@ -76,3 +81,7 @@ keyboard.each do |r|
 end
 
 image.save("./foo.jpeg")
+window.show image
+break if OpenCV::GUI.wait_key 100
+
+end
