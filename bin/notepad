@@ -1,0 +1,99 @@
+#!/usr/bin/env ruby
+
+require 'opencv'
+
+class Rectangle
+
+  attr_accessor :top, :bottom, :left, :right
+  
+  def initialize(top, bottom, left, right)
+    @top = top
+    @bottom = bottom
+    @left = left
+    @right = right
+  end
+
+  def area
+    (@right - @left) * (@bottom - @top)
+  end
+
+  def intersect_area(other)
+    x = [0, [right, other.right].min - [left, other.left].max].max
+    y = [0, [bottom, other.bottom].min - [top, other.top].max].max
+    x * y
+  end
+
+  def inspect
+    [top, bottom, left, right].inspect
+  end
+
+  def ==(other)
+    [top, bottom, left, right] == [other.top, other.bottom, other.left, other.right]
+  end
+
+  def eql?(other)
+    self == other
+  end
+
+  def hash
+    top + bottom + left + right
+  end
+
+end
+
+capture = OpenCV::CvCapture.open
+
+image = capture.query
+black_image = image.BGR2GRAY
+
+canny = black_image.canny(50, 150)
+contour = canny.find_contours(:mode => OpenCV::CV_RETR_LIST, :method => OpenCV::CV_CHAIN_APPROX_SIMPLE)
+
+candidates = []
+
+begin
+  box = contour.bounding_rect
+
+  # Heuristics to remove bad contour
+  # Contours too small
+  next unless box.width > 20
+  # Contours with the wrong height-width ratio
+  next unless box.width * 2 < box.height
+
+  candidates << Rectangle.new(box.top_left.y, box.bottom_right.y, box.top_left.x, box.bottom_right.x)
+  image.rectangle! box.top_left, box.bottom_right, :color => OpenCV::CvColor::Green
+
+end while contour = contour.h_next
+
+expanded_candidates = candidates.map do |r1|
+  candidates.each do |r2|
+    next if r1 == r2
+    if r1.intersect_area(r2) > ([r1.area, r2.area].min) * 95 / 100
+      r1 = Rectangle.new(
+        [r1.top, r2.top].min,
+        [r1.bottom, r2.bottom].max,
+        [r1.left, r2.left].min,
+        [r1.right, r2.right].max
+      )
+    end
+  end
+  r1
+end
+expanded_candidates.uniq!
+p expanded_candidates
+
+expanded_candidates.sort! do |r|
+  r.left
+end
+
+groups = []
+
+expanded_candidates.each do |r|
+end
+
+expanded_candidates.each do |r|
+  image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => OpenCV::CvColor::Red
+end
+
+
+image.save("./foo.jpeg")
