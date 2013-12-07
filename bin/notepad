@@ -16,7 +16,7 @@ image = capture.query
 black_image = image.BGR2GRAY
 
 canny = black_image.canny(50, 150)
-contour = canny.find_contours(:mode => OpenCV::CV_RETR_LIST, :method => OpenCV::CV_CHAIN_APPROX_SIMPLE)
+contour = canny.find_contours(:mode => OpenCV::CV_RETR_LIST, :method => OpenCV::CV_CHAIN_APPROX_TC89_L1)
 
 candidates = []
 
@@ -80,8 +80,7 @@ keyboard.each do |r|
   image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => OpenCV::CvColor::Red
 end
 
-#image.save("./foo.jpeg")
 window.show image
-break if OpenCV::GUI.wait_key 100
+break if OpenCV::GUI.wait_key 25
 
 end
