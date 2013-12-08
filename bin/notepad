@@ -107,7 +107,7 @@ groups.each do |g|
   keyboard_candidate = g.length > keyboard_candidate.length ? g : keyboard_candidate
 end
 
-if keyboard_candidate.length >= 13
+if keyboard_candidate.length >= 10
   keyboard = keyboard_candidate
 end
 
@@ -115,12 +115,13 @@ keyboard_candidate.each do |r|
   image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => OpenCV::CvColor::Green
 end
 keyboard_i = 1
+color = OpenCV::CvColor::Red
 keyboard.each do |r|
-  if finger && r.intersect?(finger)
-    image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => OpenCV::CvColor::Red, :thickness => -1
+  if finger && r.contains?(*finger.center)
+    image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => color, :thickness => -1
     piano.set_pressed(keyboard_i)
   else
-    image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => OpenCV::CvColor::Red, :thickness => 1
+    image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => color, :thickness => 1
     piano.set_released(keyboard_i)
   end
   keyboard_i += 1
