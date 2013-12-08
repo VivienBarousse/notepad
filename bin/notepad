@@ -28,7 +28,7 @@ finger = nil
 if red_contour
   finger_candidates = []
   begin
-    box = red_contour.bounding_rect
+    box = red_contour.rect
     next unless box.width >= 5 && box.height >= 5
     finger_candidates << Rectangle.new(box.top_left.y, box.bottom_right.y, box.top_left.x, box.bottom_right.x)
   end while red_contour = red_contour.h_next
@@ -51,7 +51,7 @@ next unless contour
 candidates = []
 
 begin
-  box = contour.bounding_rect
+  box = contour.rect
 
   # image.rectangle! box.top_left, box.bottom_right, :color => OpenCV::CvColor::Blue
 
