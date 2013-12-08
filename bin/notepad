@@ -35,7 +35,7 @@ if red_contour
   finger_candidates.sort_by! { |r| r.area.to_f * r.ratio }
   finger = finger_candidates.last
   if finger
-    image.rectangle! OpenCV::CvPoint.new(finger.left, finger.top), OpenCV::CvPoint.new(finger.right, finger.bottom), :color => OpenCV::CvColor::Blue
+    image.rectangle! OpenCV::CvPoint.new(finger.left, finger.top), OpenCV::CvPoint.new(finger.right, finger.bottom), :color => OpenCV::CvColor::Red
   end
 end
 
@@ -112,10 +112,10 @@ if keyboard_candidate.length >= 10
 end
 
 keyboard_candidate.each do |r|
-  image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => OpenCV::CvColor::Green
+  image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => OpenCV::CvColor::Gray
 end
 keyboard_i = 1
-color = OpenCV::CvColor::Red
+color = OpenCV::CvColor::Black
 keyboard.each do |r|
   if finger && r.contains?(*finger.center)
     image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => color, :thickness => -1
