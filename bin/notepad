@@ -10,6 +10,7 @@ window = OpenCV::GUI::Window.new("Keyboard!")
 capture = OpenCV::CvCapture.open
 
 keyboard = []
+keyboard_min_keys = 10
 piano = Piano.new 12
 
 loop do
@@ -107,8 +108,9 @@ groups.each do |g|
   keyboard_candidate = g.length > keyboard_candidate.length ? g : keyboard_candidate
 end
 
-if keyboard_candidate.length >= 10
+if keyboard_candidate.length >= keyboard_min_keys
   keyboard = keyboard_candidate
+  keyboard_min_keys = keyboard.length
 end
 
 keyboard_candidate.each do |r|
