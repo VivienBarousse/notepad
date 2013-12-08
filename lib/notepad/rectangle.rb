@@ -14,6 +14,10 @@ module Notepad
       (@right - @left) * (@bottom - @top)
     end
 
+    def intersect?(other)
+      intersect_area(other) > 0
+    end
+
     def intersect_area(other)
       x = [0, [right, other.right].min - [left, other.left].max].max
       y = [0, [bottom, other.bottom].min - [top, other.top].max].max
