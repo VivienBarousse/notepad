@@ -14,124 +14,122 @@ keyboard_min_keys = 10
 piano = Piano.new 12
 
 loop do
+  image = capture.query
+  unless image
+  p "no image"
+  end
+  next unless image
+
+  red_image = image.BGR2HSV.add(OpenCV::CvScalar.new(90 - 179, 0, 0, 0)).in_range(OpenCV::CvScalar.new(80, 75, 75, 0), OpenCV::CvScalar.new(100, 255, 255, 0))
+  red_canny = red_image.canny(10, 200)
+  red_contour = red_canny.find_contours(:mode => OpenCV::CV_RETR_LIST, :method => OpenCV::CV_CHAIN_APPROX_SIMPLE)
+  fingers = []
+  if red_contour
+    finger_candidates = []
+    begin
+      box = red_contour.rect
+      next unless box.width >= 20 && box.height >= 20
+      finger_candidates << Rectangle.new(box.top_left.y, box.bottom_right.y, box.top_left.x, box.bottom_right.x)
+      image.rectangle! box.top_left, box.bottom_right, :color => OpenCV::CvColor::Red
+    end while red_contour = red_contour.h_next
+    finger_candidates.sort_by! { |r| r.area.to_f * r.ratio }
+    fingers = finger_candidates
+    finger = fingers.last
+    if finger
+      image.rectangle! OpenCV::CvPoint.new(finger.left, finger.top), OpenCV::CvPoint.new(finger.right, finger.bottom), :color => OpenCV::CvColor::Red, :thickness => -1
+    end
+  end
 
 
-image = capture.query
-unless image
-p "no image"
-end
-next unless image
 
-red_image = image.BGR2HSV.add(OpenCV::CvScalar.new(90 - 179, 0, 0, 0)).in_range(OpenCV::CvScalar.new(80, 75, 75, 0), OpenCV::CvScalar.new(100, 255, 255, 0))
-red_canny = red_image.canny(10, 200)
-red_contour = red_canny.find_contours(:mode => OpenCV::CV_RETR_LIST, :method => OpenCV::CV_CHAIN_APPROX_SIMPLE)
-fingers = []
-if red_contour
-  finger_candidates = []
+  black_image = image.BGR2GRAY
+  canny = black_image.canny(10, 200)
+  contour = canny.find_contours(:mode => OpenCV::CV_RETR_LIST, :method => OpenCV::CV_CHAIN_APPROX_SIMPLE)
+  next unless contour
+
+  #image = red_image
+
+  candidates = []
+
   begin
-    box = red_contour.rect
-    next unless box.width >= 20 && box.height >= 20
-    finger_candidates << Rectangle.new(box.top_left.y, box.bottom_right.y, box.top_left.x, box.bottom_right.x)
-    image.rectangle! box.top_left, box.bottom_right, :color => OpenCV::CvColor::Red
-  end while red_contour = red_contour.h_next
-  finger_candidates.sort_by! { |r| r.area.to_f * r.ratio }
-  fingers = finger_candidates
-  finger = fingers.last
-  if finger
-    image.rectangle! OpenCV::CvPoint.new(finger.left, finger.top), OpenCV::CvPoint.new(finger.right, finger.bottom), :color => OpenCV::CvColor::Red, :thickness => -1
+    box = contour.rect
+
+    # image.rectangle! box.top_left, box.bottom_right, :color => OpenCV::CvColor::Blue
+
+    # Heuristics to remove bad contour
+    # Contours too small
+    next unless box.width > 10
+    # Contours with the wrong height-width ratio
+    next unless box.width * 3 < box.height
+
+    candidates << Rectangle.new(box.top_left.y, box.bottom_right.y, box.top_left.x, box.bottom_right.x)
+
+  end while contour = contour.h_next
+
+  expanded_candidates = candidates.map do |r1|
+    candidates.each do |r2|
+      next if r1 == r2
+      if r1.intersect_area(r2) > ([r1.area, r2.area].min) * 95 / 100
+        r1 = Rectangle.new(
+          [r1.top, r2.top].min,
+          [r1.bottom, r2.bottom].max,
+          [r1.left, r2.left].min,
+          [r1.right, r2.right].max
+        )
+      end
+    end
+    r1
   end
-end
+  expanded_candidates.uniq!
 
+  expanded_candidates.sort_by! do |r|
+    r.left
+  end
 
+  groups = []
 
-black_image = image.BGR2GRAY
-canny = black_image.canny(10, 200)
-contour = canny.find_contours(:mode => OpenCV::CV_RETR_LIST, :method => OpenCV::CV_CHAIN_APPROX_SIMPLE)
-next unless contour
-
-#image = red_image
-
-candidates = []
-
-begin
-  box = contour.rect
-
-  # image.rectangle! box.top_left, box.bottom_right, :color => OpenCV::CvColor::Blue
-
-  # Heuristics to remove bad contour
-  # Contours too small
-  next unless box.width > 10
-  # Contours with the wrong height-width ratio
-  next unless box.width * 3 < box.height
-
-  candidates << Rectangle.new(box.top_left.y, box.bottom_right.y, box.top_left.x, box.bottom_right.x)
-
-end while contour = contour.h_next
-
-expanded_candidates = candidates.map do |r1|
-  candidates.each do |r2|
-    next if r1 == r2
-    if r1.intersect_area(r2) > ([r1.area, r2.area].min) * 95 / 100
-      r1 = Rectangle.new(
-        [r1.top, r2.top].min,
-        [r1.bottom, r2.bottom].max,
-        [r1.left, r2.left].min,
-        [r1.right, r2.right].max
-      )
+  expanded_candidates.each do |r|
+    included = false
+    groups.each do |g|
+      if (g.last.top - r.top).abs < 20 &&
+          (g.last.bottom - r.bottom).abs < 20 &&
+          (g.last.right - r.left).abs < 20
+        g << r
+        included = true
+      end
+    end
+    unless included
+      groups << [r]
     end
   end
-  r1
-end
-expanded_candidates.uniq!
 
-expanded_candidates.sort_by! do |r|
-  r.left
-end
-
-groups = []
-
-expanded_candidates.each do |r|
-  included = false
+  keyboard_candidate = groups.first || []
   groups.each do |g|
-    if (g.last.top - r.top).abs < 20 &&
-        (g.last.bottom - r.bottom).abs < 20 &&
-        (g.last.right - r.left).abs < 20
-      g << r
-      included = true
+    keyboard_candidate = g.length > keyboard_candidate.length ? g : keyboard_candidate
+  end
+
+  if keyboard_candidate.length >= keyboard_min_keys
+    keyboard = keyboard_candidate
+    keyboard_min_keys = keyboard.length
+  end
+
+  keyboard_candidate.each do |r|
+    image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => OpenCV::CvColor::Gray
+  end
+  keyboard_i = 1
+  color = OpenCV::CvColor::Black
+  keyboard.each do |r|
+    if fingers.any? { |finger| r.contains?(*finger.center) }
+      image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => color, :thickness => -1
+      piano.set_pressed(keyboard_i)
+    else
+      image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => color, :thickness => 1
+      piano.set_released(keyboard_i)
     end
+    keyboard_i += 1
   end
-  unless included
-    groups << [r]
-  end
-end
 
-keyboard_candidate = groups.first || []
-groups.each do |g|
-  keyboard_candidate = g.length > keyboard_candidate.length ? g : keyboard_candidate
-end
-
-if keyboard_candidate.length >= keyboard_min_keys
-  keyboard = keyboard_candidate
-  keyboard_min_keys = keyboard.length
-end
-
-keyboard_candidate.each do |r|
-  image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => OpenCV::CvColor::Gray
-end
-keyboard_i = 1
-color = OpenCV::CvColor::Black
-keyboard.each do |r|
-  if fingers.any? { |finger| r.contains?(*finger.center) }
-    image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => color, :thickness => -1
-    piano.set_pressed(keyboard_i)
-  else
-    image.rectangle! OpenCV::CvPoint.new(r.left, r.top), OpenCV::CvPoint.new(r.right, r.bottom), :color => color, :thickness => 1
-    piano.set_released(keyboard_i)
-  end
-  keyboard_i += 1
-end
-
-window.show image
-break if OpenCV::GUI.wait_key 10
+  window.show image
+  break if OpenCV::GUI.wait_key 10
 
 end
